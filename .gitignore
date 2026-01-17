@@ -1,0 +1,7 @@
+node_modules/
+apk/
+.vscode/
+ssl/
+stream/
+data/
+index.html
