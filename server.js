@@ -16,7 +16,6 @@ let latestData = {
 }
 
 let latestBattery = null
-let publisherSocket = null
 let publisherState = false
 let lastPublisherPing  = Date.now()
 
@@ -39,7 +38,6 @@ wss.on('connection', (ws, req) => {
     if (ws.role === 'publisher') {
         lastPublisherPing = Date.now()
         publisherState = true
-        publisherSocket = ws
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN && client.role === 'client') {
                 client.send(JSON.stringify({
@@ -97,7 +95,7 @@ wss.on('connection', (ws, req) => {
                 } catch (err) {
                     wss.clients.forEach(client => {
                         if (client.readyState === WebSocket.OPEN && client.role === 'client') {
-                            client.send(`Error parsing data. error: ${err}`)
+                            client.send(JSON.stringify({ error: 'Invalid JSON' }))
                         }
                     })
                 }
@@ -123,7 +121,6 @@ wss.on('connection', (ws, req) => {
     ws.on('close', () => {
         if (ws.role === 'publisher') {
             publisherState = false
-            publisherSocket = null
             lastPublisherPing = 0
             latestData.state = false
             wss.clients.forEach(client => {
