@@ -9,35 +9,27 @@ const port = 8080
 let latestFrame = null
 let latestSettings = null
 let latestBattery = null
+let publisherSocket = null
 let publisherState = false
-let pingId
+let lastPublisherPing  = Date.now()
 
 const server = http.createServer(app)
 const wss = new WebSocket.Server({ server })
 
 wss.on('connection', (ws, req) => {
-    const url = new URL(req.url, `http://202-155-94-64.domainesia.io`)
+    const url = new URL(req.url, `http://${req.headers.host}`)
     const role = url.searchParams.get('role')
     ws.role = role
 
-    function setPing() {
-        publisherState = false
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN && client.role === 'client') {
-                client.send(JSON.stringify({
-                    data: {
-                        state: false,
-                        lux: 0.0,
-                        hum: 0.0,
-                        temp: 0.0
-                    }
-                }))
-            }
-        })
+    if (!['publisher', 'client'].includes(role) || (role === 'publisher' && publisherSocket)) {
+        ws.close(1008, 'Invalid role')
+        return
     }
 
     if (ws.role === 'publisher') {
+        lastPublisherPing = Date.now()
         publisherState = true
+        publisherSocket = ws
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN && client.role === 'client') {
                 client.send(JSON.stringify({
@@ -51,6 +43,9 @@ wss.on('connection', (ws, req) => {
             }
         })
     } else {
+        if (latestFrame)
+            ws.send(latestFrame, { binary: true })
+
         ws.send(JSON.stringify({
             data: {
                 state: publisherState,
@@ -65,9 +60,7 @@ wss.on('connection', (ws, req) => {
 
     ws.on('message', (message, isBinary) => {
         if (ws.role === 'publisher') {
-            clearInterval(pingId)
-            pingId = setInterval(setPing, 10000)
-
+            lastPublisherPing = Date.now()
             if (isBinary) {
                 latestFrame = message
                 wss.clients.forEach(client => {
@@ -123,8 +116,9 @@ wss.on('connection', (ws, req) => {
 
     ws.on('close', () => {
         if (ws.role === 'publisher') {
-            clearInterval(pingId)
             publisherState = false
+            publisherSocket = null
+            lastPublisherPing = 0
             wss.clients.forEach(client => {
                 if (client.readyState === WebSocket.OPEN && client.role === 'client') {
                     client.send(JSON.stringify({
@@ -142,5 +136,24 @@ wss.on('connection', (ws, req) => {
 
     console.log(`New ${ws.role} connected`)
 })
+
+setInterval(() => {
+    const alive = Date.now() - lastPublisherPing < 10000
+    if (alive !== publisherState) {
+        publisherState = alive
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN && client.role === 'client') {
+                client.send(JSON.stringify({
+                    data: {
+                        state: alive,
+                        lux: 0.0,
+                        hum: 0.0,
+                        temp: 0.0
+                    }
+                }))
+            }
+        })
+    }
+}, 3000)
 
 server.listen(port)
