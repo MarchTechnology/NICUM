@@ -38,15 +38,11 @@ wss.on('connection', (ws, req) => {
     if (ws.role === 'publisher') {
         lastPublisherPing = Date.now()
         publisherState = true
+        latestData.state = true
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN && client.role === 'client') {
                 client.send(JSON.stringify({
-                    data: {
-                        state: true,
-                        lux: 0.0,
-                        hum: 0.0,
-                        temp: 0.0
-                    }
+                    data: latestData
                 }))
             }
         })
