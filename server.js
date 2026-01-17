@@ -17,7 +17,7 @@ const server = http.createServer(app)
 const wss = new WebSocket.Server({ server })
 
 wss.on('connection', (ws, req) => {
-    const url = new URL(req.url, `http://${req.headers.host}`)
+    const url = new URL(req.url, `http://202-155-94-64.domainesia.io`)
     const role = url.searchParams.get('role')
     ws.role = role
 
