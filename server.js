@@ -14,7 +14,10 @@ let publisherState = false
 let lastPublisherPing  = Date.now()
 
 const server = http.createServer(app)
-const wss = new WebSocket.Server({ server })
+const wss = new WebSocket.Server({
+    server,
+    perMessageDeflate: false
+})
 
 wss.on('connection', (ws, req) => {
     const url = new URL(req.url, `http://${req.headers.host}`)
@@ -132,6 +135,11 @@ wss.on('connection', (ws, req) => {
                 }
             })
         }
+    })
+
+    ws.on('error', err => {
+        console.error('WebSocket error:', err.message)
+        ws.close(1002, 'Protocol error')
     })
 
     console.log(`New ${ws.role} connected`)
