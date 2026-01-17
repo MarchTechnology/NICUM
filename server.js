@@ -8,6 +8,13 @@ const port = 8080
 
 let latestFrame = null
 let latestSettings = null
+let latestData = {
+    state: false,
+    lux: 0.0,
+    hum: 0.0,
+    temp: 0.0
+}
+
 let latestBattery = null
 let publisherSocket = null
 let publisherState = false
@@ -50,12 +57,7 @@ wss.on('connection', (ws, req) => {
             ws.send(latestFrame, { binary: true })
 
         ws.send(JSON.stringify({
-            data: {
-                state: publisherState,
-                lux: 0.0,
-                hum: 0.0,
-                temp: 0.0
-            },
+            data: latestData,
             settings: latestSettings,
             battery: latestBattery
         }))
@@ -80,6 +82,7 @@ wss.on('connection', (ws, req) => {
                     
                     if ('data' in raw) {
                         raw.data.state = true
+                        latestData = raw.data
                     }
 
                     if ('battery' in raw) {
@@ -122,15 +125,11 @@ wss.on('connection', (ws, req) => {
             publisherState = false
             publisherSocket = null
             lastPublisherPing = 0
+            latestData.state = false
             wss.clients.forEach(client => {
                 if (client.readyState === WebSocket.OPEN && client.role === 'client') {
                     client.send(JSON.stringify({
-                        data: {
-                            state: false,
-                            lux: 0.0,
-                            hum: 0.0,
-                            temp: 0.0
-                        }
+                        data: latestData
                     }))
                 }
             })
@@ -149,15 +148,11 @@ setInterval(() => {
     const alive = Date.now() - lastPublisherPing < 10000
     if (alive !== publisherState) {
         publisherState = alive
+        latestData.state = alive
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN && client.role === 'client') {
                 client.send(JSON.stringify({
-                    data: {
-                        state: alive,
-                        lux: 0.0,
-                        hum: 0.0,
-                        temp: 0.0
-                    }
+                    data: latestData
                 }))
             }
         })
