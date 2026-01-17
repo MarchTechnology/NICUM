@@ -146,7 +146,7 @@ wss.on('connection', (ws, req) => {
 })
 
 setInterval(() => {
-    const alive = Date.now() - lastPublisherPing < 15000
+    const alive = Date.now() - lastPublisherPing < 10000
     if (alive !== publisherState) {
         publisherState = alive
         wss.clients.forEach(client => {
@@ -162,6 +162,6 @@ setInterval(() => {
             }
         })
     }
-}, 10000)
+}, 3000)
 
 server.listen(port)
