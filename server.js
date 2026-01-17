@@ -6,7 +6,7 @@ const { URL } = require('url')
 const app = express()
 const port = 8080
 
-let latestFrame = null
+// let latestFrame = null
 let latestSettings = null
 let latestBattery = null
 let publisherSocket = null
@@ -46,8 +46,8 @@ wss.on('connection', (ws, req) => {
             }
         })
     } else {
-        if (latestFrame)
-            ws.send(latestFrame, { binary: true })
+        // if (latestFrame)
+        //     ws.send(latestFrame, { binary: true })
 
         ws.send(JSON.stringify({
             data: {
@@ -65,7 +65,7 @@ wss.on('connection', (ws, req) => {
         if (ws.role === 'publisher') {
             lastPublisherPing = Date.now()
             if (isBinary) {
-                latestFrame = message
+                // latestFrame = message
                 wss.clients.forEach(client => {
                     if (client.readyState === WebSocket.OPEN && client.role === 'client') {
                         client.send(message, { binary: true })
@@ -146,7 +146,7 @@ wss.on('connection', (ws, req) => {
 })
 
 setInterval(() => {
-    const alive = Date.now() - lastPublisherPing < 10000
+    const alive = Date.now() - lastPublisherPing < 15000
     if (alive !== publisherState) {
         publisherState = alive
         wss.clients.forEach(client => {
@@ -162,6 +162,6 @@ setInterval(() => {
             }
         })
     }
-}, 3000)
+}, 10000)
 
 server.listen(port)
