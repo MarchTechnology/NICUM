@@ -24,7 +24,7 @@ wss.on('connection', (ws, req) => {
     const role = url.searchParams.get('role')
     ws.role = role
 
-    if (!['publisher', 'client'].includes(role) || (role === 'publisher' && publisherSocket)) {
+    if (!['publisher', 'client'].includes(role)) {
         ws.close(1008, 'Invalid role')
         return
     }
